@@ -9,7 +9,7 @@ import theano
 import theano.tensor as T
 from theano.tensor.shared_randomstreams import RandomStreams
 
-from DBN import DBN
+from DBN_prediction import DBN
 
 def load_data_from_csv(dataset_filename):
 	''' Loads the dataset
@@ -24,9 +24,15 @@ def load_data_from_csv(dataset_filename):
  
 	# Load the dataset
 	dataset = numpy.genfromtxt(dataset_filename, delimiter=',')
+
+	# with open(dataset_filename, 'rb') as f:
+	# 	reader = csv.reader(f)
+	# 	for row in reader:
+	# 		print row
 	
-	print 'datasetset rows: %i columns: %i' % (dataset.shape[0], dataset.shape[1])
-	#print dataset[0,:]
+	#print 'datasetset rows: %i columns: %i' % (dataset.shape[0], dataset.shape[1])
+	# print dataset[0,:]
+	# print dataset[1,:]
 
 	train_set_rows = math.trunc(dataset.shape[0] * 0.7)
 	valid_set_rows = math.trunc(dataset.shape[0] * 0.15)
@@ -34,33 +40,43 @@ def load_data_from_csv(dataset_filename):
 
 	begin_row = 0
 	end_row = train_set_rows-1
-	train_set_x = dataset[begin_row:end_row, 0:dataset.shape[1]-1]
-	print 'P: train_set_x rows: %i columns: %i' % (train_set_x.shape[0], train_set_x.shape[1])
-	train_set_y = dataset[begin_row:end_row, dataset.shape[1]-1:dataset.shape[1]]
+	train_set_x_a = dataset[begin_row:end_row, :dataset.shape[1]-1]
+	#print 'P: train_set_x rows: %i columns: %i' % (train_set_x.shape[0], train_set_x.shape[1])
+	#print train_set_x[0,:]
+	train_set_y_a = dataset[begin_row:end_row, dataset.shape[1]-1:].flatten('C')
+	#print 'P: train_set_y rows: %i columns: %i' % (train_set_y.shape[0], train_set_y.shape[1])
+	# print train_set_y.shape[0]
+	# print train_set_y.shape[1]
+	#print train_set_y[0,0]
 
 	begin_row = end_row
 	end_row = end_row + valid_set_rows
-	valid_set_x = dataset[begin_row:end_row, 0:dataset.shape[1]-2]
-	valid_set_y = dataset[begin_row:end_row, dataset.shape[1]-1]
+	valid_set_x_a = dataset[begin_row:end_row, :dataset.shape[1]-1]
+	valid_set_y_a = dataset[begin_row:end_row, dataset.shape[1]-1:].flatten('C')
 
 	begin_row = end_row
 	end_row = end_row + test_set_rows
-	test_set_x = dataset[begin_row:end_row, 0:dataset.shape[1]-2]
-	test_set_y = dataset[begin_row:end_row, dataset.shape[1]-1]
+	test_set_x_a = dataset[begin_row:end_row, :dataset.shape[1]-1]
+	test_set_y_a = dataset[begin_row:end_row, dataset.shape[1]-1:].flatten('C')
 
-	train_set = (train_set_x, train_set_y)
-	valid_set = (valid_set_x, valid_set_y)
-	test_set = (test_set_x, test_set_y)
+	train_set = (train_set_x_a, train_set_y_a)
+	valid_set = (valid_set_x_a, valid_set_y_a)
+	test_set = (test_set_x_a, test_set_y_a)
 
 	print 'train_set_x rows: %i columns: %i' % (train_set[0].shape[0], train_set[0].shape[1])
-	print 'train_set_y rows: %i columns: %i' % (train_set[1].shape[0], train_set[1].shape[1])
+	print 'train_set_y rows: %i' % train_set[1].shape[0]
 
 	print 'valid_set_x rows: %i columns: %i' % (valid_set[0].shape[0], valid_set[0].shape[1])
-	print 'valid_set_y rows: %i columns: %i' % (valid_set[1].shape[0], valid_set[1].shape[1])
+	print 'valid_set_y rows: %i' % valid_set[1].shape[0]
 
 	print 'test_set_x rows: %i columns: %i' % (test_set[0].shape[0], test_set[0].shape[1])
-	print 'test_set_y rows: %i columns: %i' % (test_set[1].shape[0], test_set[1].shape[1])
+	print 'test_set_y rows: %i' % test_set[1].shape[0]
 	#print test_set[0][0,:]
+
+	for x in xrange(10):
+		dataT_x, dataT_y = train_set
+		#print dataT_x[x,:]
+		print dataT_y[x]	
 
 	#train_set, valid_set, test_set format: tuple(input, target)
 	#input is an numpy.ndarray of 2 dimensions (a matrix)
@@ -98,12 +114,14 @@ def load_data_from_csv(dataset_filename):
 	valid_set_x, valid_set_y = shared_dataset(valid_set)
 	train_set_x, train_set_y = shared_dataset(train_set)
 
+	#print 'Theano train_set_y %i' % len(train_set_y)
+
 	rval = [(train_set_x, train_set_y), (valid_set_x, valid_set_y),
 			(test_set_x, test_set_y)]
 	return rval
 
-def run_dbn_tfp(finetune_lr=0.1, pretraining_epochs=100,
-			 pretrain_lr=0.01, k=1, training_epochs=100,
+def run_dbn_tfp(finetune_lr=0.1, pretraining_epochs=2,
+			 pretrain_lr=0.01, k=1, training_epochs=2,
 			 batch_size=10):
 
 	datasets = load_data_from_csv('C:\\Users\\vivanac\\Desktop\\SkyDrive\\England\\DeepLearningTutorials\\data\\dataset_1_7_3.csv');
@@ -120,7 +138,7 @@ def run_dbn_tfp(finetune_lr=0.1, pretraining_epochs=100,
 	numpy_rng = numpy.random.RandomState(123)
 	print '... building the model'
 	# construct the Deep Belief Network
-	dbn = DBN(numpy_rng=numpy_rng, n_ins=7,
+	dbn = DBN(numpy_rng=numpy_rng, n_ins=8,
 			  hidden_layers_sizes=[100, 100, 100],
 			  n_outs=10)
 
@@ -160,6 +178,8 @@ def run_dbn_tfp(finetune_lr=0.1, pretraining_epochs=100,
 	train_fn, validate_model, test_model = dbn.build_finetune_functions(
 				datasets=datasets, batch_size=batch_size,
 				learning_rate=finetune_lr)
+
+	#print 'Number of finetune_functions %i' % train_fn.size[0]
 
 	print '... finetunning the model'
 	# early-stopping parameters

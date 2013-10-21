@@ -130,7 +130,9 @@ class LogisticRegression(object):
         :param y: corresponds to a vector that gives for each example the
                   correct label
         """
-
+        print 'y.ndim %i' % y.ndim
+        #print y.shape.eval(0)
+        print 'self.y_pred.ndim %i' % self.y_pred.ndim       
         # check if y has same dimension of y_pred
         if y.ndim != self.y_pred.ndim:
             raise TypeError('y should have the same shape as self.y_pred',
@@ -174,6 +176,14 @@ def load_data(dataset):
     print 'test_set size: %i columns: %i' % (valid_set[0].shape[0], valid_set[0].shape[1])
 
     #print train_set[0][0,:]
+    for x in xrange(10):
+        dataT_x, dataT_y = train_set
+        #print dataT_x[x,:]
+        print dataT_y[x]
+
+    # print 'P: train_set_x rows: %i columns: %i' % (dataT_x.shape[0], dataT_x.shape[1])
+    # print dataT_y.shape[0]
+    # print dataT_y.shape[1]
 
     f.close()
     #train_set, valid_set, test_set format: tuple(input, target)
