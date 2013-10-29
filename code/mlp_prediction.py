@@ -83,6 +83,8 @@ class HiddenLayer(object):
 					low=-numpy.sqrt(6. / (n_in + n_out)),
 					high=numpy.sqrt(6. / (n_in + n_out)),
 					size=(n_in, n_out)), dtype=theano.config.floatX)
+			#print 'W_values of n_in %i and n_out %i:' % (n_in, n_out)
+			#print W_values
 			if activation == theano.tensor.nnet.sigmoid:
 				W_values *= 4
 
@@ -95,12 +97,17 @@ class HiddenLayer(object):
 		self.W = W
 		self.b = b
 
-		lin_output = T.dot(input, self.W) + self.b
-		print 'init mlp lin_output_dim %i' % lin_output.ndim
-		self.output = (lin_output if activation is None
-					   else activation(lin_output))
-		self.y_pred = T.mean(self.output, axis=1)
-		print 'init mlp y_pred_dim %i' % self.y_pred.ndim
+		self.proba = self.input
+		#if n_out == 1:
+		#	self.proba = theano.printing.Print('INPUT:')(self.input)
+
+		self.lin_output = T.dot(self.proba, self.W) + self.b
+		#self.lin_output2  = theano.printing.Print('this is a very important value')(self.lin_output.flatten())
+		#print 'init mlp lin_output_dim %i' % self.lin_output.ndim
+		self.output = (self.lin_output if activation is None
+					   else activation(self.lin_output))
+		self.y_pred = self.output.flatten()
+		#print 'init mlp y_pred_dim %i' % self.y_pred.ndim
 		# parameters of the model
 		self.params = [self.W, self.b]
 
@@ -121,17 +128,14 @@ class HiddenLayer(object):
 		Note: we use the mean instead of the sum so that
 			  the learning rate is less dependent on the batch size
 		"""
-		# y.shape[0] is (symbolically) the number of rows in y, i.e.,
-		# number of examples (call it n) in the minibatch
-		# T.arange(y.shape[0]) is a symbolic vector which will contain
-		# [0,1,2,... n-1] T.log(self.p_y_given_x) is a matrix of
-		# Log-Probabilities (call it LP) with one row per example and
-		# one column per class LP[T.arange(y.shape[0]),y] is a vector
-		# v containing [LP[0,y[0]], LP[1,y[1]], LP[2,y[2]], ...,
-		# LP[n-1,y[n-1]]] and T.mean(LP[T.arange(y.shape[0]),y]) is
-		# the mean (across minibatch examples) of the elements in v,
-		# i.e., the mean log-likelihood across the minibatch.
-		return -T.mean(self.y_pred - y)
+		
+		#y_input = theano.printing.Print('y_input')(y)
+		#y_pred = theano.printing.Print('y_pred')(self.y_pred)
+		res = T.mean(T.sqr(self.y_pred - y))/2.
+		#mean = theano.printing.Print('mean')(res)
+
+		#return -T.mean(self.y_pred - y)
+		return res
 
 	def errors(self, y):
 		"""Return a float representing the number of errors in the minibatch
@@ -142,21 +146,62 @@ class HiddenLayer(object):
 		:param y: corresponds to a vector that gives for each example the
 				  correct label
 		"""
-		print 'y.ndim %i' % y.ndim
+		#print 'y.ndim %i' % y.ndim
 		#print y.shape.eval(0)
-		print 'self.y_pred.ndim %i' % self.y_pred.ndim
+		#print 'self.y_pred.ndim %i' % self.y_pred.ndim
 		# check if y has same dimension of y_pred
 		if y.ndim != self.y_pred.ndim:
 			raise TypeError('y should have the same shape as self.y_pred',
 				('y', target.type, 'y_pred', self.y_pred.type))
 		# check if y is of the correct datatype
-		if y.dtype.startswith('int'):
+		if y.dtype.startswith('float'):
 			# the T.neq operator returns a vector of 0s and 1s, where 1
 			# represents a mistake in prediction
-			return T.mean(self.y_pred - y)
+			#return T.mean(self.y_pred - y)
+			#y_input = theano.printing.Print('y_input')(y)
+			#y_pred = theano.printing.Print('y_pred')(self.y_pred)
+			#res = (y_pred - y_input)/y_input
+			#res_p = theano.printing.Print('error part:')(res)
+			return T.sum(T.abs_((self.y_pred - y)/y))
+			#return T.sum(T.abs_(res_p))
 		else:
 			raise NotImplementedError()
 
+	def errorsRMSE(self, y):
+		
+		if y.ndim != self.y_pred.ndim:
+			raise TypeError('y should have the same shape as self.y_pred',
+				('y', target.type, 'y_pred', self.y_pred.type))
+		# check if y is of the correct datatype
+		if y.dtype.startswith('float'):
+			# the T.neq operator returns a vector of 0s and 1s, where 1
+			# represents a mistake in prediction
+			#return T.mean(self.y_pred - y)
+			#y_input = theano.printing.Print('y_input')(y)
+			#y_pred = theano.printing.Print('y_pred')(self.y_pred)
+			#res = (y_pred - y_input)/y_input
+			#res_p = theano.printing.Print('error part:')(res)
+			return T.sum(T.sqr(self.y_pred - y))
+			#return T.sum(T.abs_(res_p))
+		else:
+			raise NotImplementedError()
+	
+	def evaluation(self, y):
+		
+		if y.ndim != self.y_pred.ndim:
+			raise TypeError('y should have the same shape as self.y_pred',
+				('y', target.type, 'y_pred', self.y_pred.type))
+		# check if y is of the correct datatype
+		if y.dtype.startswith('float'):
+			
+			n_items = y.shape[0]
+			rmse = T.sqrt(self.errorsRMSE(y)/n_items)
+			mape = self.errors(y)/n_items
+
+			return rmse, mape, self.y_pred, y
+
+		else:
+			raise NotImplementedError()
 
 class MLP(object):
 	"""Multi-Layer Perceptron Class
