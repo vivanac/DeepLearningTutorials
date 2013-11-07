@@ -147,6 +147,11 @@ class GRBM(object):
 
         '''
         pre_sigmoid_activation = T.dot(hid, self.W.T) + self.vbias
+
+        #pre_sigmoid_v1_p = theano.printing.Print('pre_sigmoid_v1')(pre_sigmoid_v1)
+        # v_mean = T.nnet.sigmoid(pre_sigmoid_activation)
+        # v_mean_p = theano.printing.Print('v1_mean')(v_mean)
+
         return [pre_sigmoid_activation, pre_sigmoid_activation]
 
     def sample_v_given_h(self, h0_sample):
@@ -157,16 +162,20 @@ class GRBM(object):
         # Note that theano_rng.binomial returns a symbolic sample of dtype
         # int64 by default. If we want to keep our computations in floatX
         # for the GPU we need to specify to return the dtype floatX
-        v1_sample = self.theano_rng.binomial(size=v1_mean.shape,
-                                             n=1, p=v1_mean,
-                                             dtype=theano.config.floatX)
-        return [pre_sigmoid_v1, v1_mean, v1_sample]
+        # v1_sample = self.theano_rng.binomial(size=v1_mean.shape,
+        #                                      n=1, p=v1_mean,
+        #                                      dtype=theano.config.floatX)
+        return [pre_sigmoid_v1, v1_mean, v1_mean]
 
     def gibbs_hvh(self, h0_sample):
         ''' This function implements one step of Gibbs sampling,
             starting from the hidden state'''
         pre_sigmoid_v1, v1_mean, v1_sample = self.sample_v_given_h(h0_sample)
         pre_sigmoid_h1, h1_mean, h1_sample = self.sample_h_given_v(v1_sample)
+
+        #pre_sigmoid_v1_p = theano.printing.Print('pre_sigmoid_v1')(pre_sigmoid_v1)
+        #v1_mean_p = theano.printing.Print('v1_mean')(v1_mean)
+
         return [pre_sigmoid_v1, v1_mean, v1_sample,
                 pre_sigmoid_h1, h1_mean, h1_sample]
 
@@ -250,7 +259,7 @@ class GRBM(object):
 
     def get_pseudo_likelihood_cost(self, updates):
         """Stochastic approximation to the pseudo-likelihood"""
-
+        print 'pseudo'
         # index of bit i in expression p(x_i | x_{\i})
         bit_i_idx = theano.shared(value=0, name='bit_i_idx')
 
@@ -307,11 +316,12 @@ class GRBM(object):
 
         """
 
-        cross_entropy = T.mean(
-                T.sum(self.input * T.log(T.nnet.sigmoid(pre_sigmoid_nv)) +
-                (1 - self.input) * T.log(1 - T.nnet.sigmoid(pre_sigmoid_nv)),
-                      axis=1))
+        # cross_entropy = T.mean(
+        #         T.sum(self.input * T.log(T.nnet.sigmoid(pre_sigmoid_nv)) +
+        #         (1 - self.input) * T.log(1 - T.nnet.sigmoid(pre_sigmoid_nv)),
+        #               axis=1))
 
-        return cross_entropy
-
+        # return cross_entropy
+        error = T.mean(T.sum(T.sqr(self.input - pre_sigmoid_nv)))
+        return error
 

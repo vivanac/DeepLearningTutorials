@@ -114,7 +114,7 @@ class DBN_GRBM(object):
 
             # Construct an RBM that shared weights with this layer
             if i == 0:
-                rbm_layer = RBM(numpy_rng=numpy_rng,
+                rbm_layer = GRBM(numpy_rng=numpy_rng,
                                 theano_rng=theano_rng,
                                 input=layer_input,
                                 n_visible=input_size,
@@ -122,7 +122,7 @@ class DBN_GRBM(object):
                                 W=sigmoid_layer.W,
                                 hbias=sigmoid_layer.b)
             else:
-                rbm_layer = GRBM(numpy_rng=numpy_rng,
+                rbm_layer = RBM(numpy_rng=numpy_rng,
                                 theano_rng=theano_rng,
                                 input=layer_input,
                                 n_visible=input_size,

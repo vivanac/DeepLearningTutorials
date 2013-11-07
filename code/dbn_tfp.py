@@ -184,8 +184,8 @@ def load_data_from_csv(dataset_filename, sli_win_size):
 			(test_set_x, test_set_y)]
 	return rval, scale_factors_y
 
-def run_dbn_tfp(finetune_lr=0.1, pretraining_epochs=100,
-			 pretrain_lr=0.01, k=1, training_epochs=5000,
+def run_dbn_tfp(finetune_lr=0.3, pretraining_epochs=200,
+			 pretrain_lr=0.005, k=1, training_epochs=1000,
 			 batch_size=30):
 
 	datasets, scale_factors_y = load_data_from_csv('C:\\Users\\vivanac\\Desktop\\SkyDrive\\England\\DeepLearningTutorials\\data\\dataset_10_7_3.csv', 10);
@@ -204,8 +204,8 @@ def run_dbn_tfp(finetune_lr=0.1, pretraining_epochs=100,
 	numpy_rng = numpy.random.RandomState(123)
 	print '... building the model'
 	# construct the Deep Belief Network
-	dbn = DBN(numpy_rng=numpy_rng, n_ins=17,
-			  hidden_layers_sizes=[34, 34, 34, 34],
+	dbn = DBN_GRBM(numpy_rng=numpy_rng, n_ins=17,
+			  hidden_layers_sizes=[34, 34],
 			  n_outs=1)
 
 	#########################
